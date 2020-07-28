@@ -2,7 +2,7 @@
 
 This is the public version of portfolio_tracking.
 
-Current problem: shorting equity might not work 
+Current problem: shorting equity might not work; no margin stuff; no crpto (can add in modify files)
 
 Supported platform: Robinhood
 
