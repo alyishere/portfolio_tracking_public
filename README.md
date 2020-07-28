@@ -3,7 +3,7 @@
 This is the public version of portfolio_tracking.
 
 Current problem: shorting equity might not work 
-Supported broker: Robinhood
+Supported platform: Robinhood
 
 To use, you need to add the following files:
   RBHD_USERNM.txt: robinhood username
