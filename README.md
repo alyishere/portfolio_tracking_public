@@ -2,6 +2,10 @@
 
 Public version of portfolio_tracking
 
+Current problem: shorting equity might not work 
+
+Support broker: Robinhood
+
 RBHD_USERNM.txt     robinhood username
 
 RBHD_PSWD.txt       robinhood password
