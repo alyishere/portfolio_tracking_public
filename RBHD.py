@@ -194,6 +194,8 @@ def monthly_return_RBHD():
     result_table.fillna(0, inplace=True)
     result_table['Capital_Flow'] = result_table['fund_$'] - result_table['Previous_Commitment']
     result_table['Monthly_Performance'] = 100*result_table['daily_return_$_y']/(result_table['close_equity']-result_table['daily_return_$_y'])
-
-    return result_table[['Month_End','close_equity','fund_$','Capital_Flow','Cash','daily_return_$_y','Monthly_Performance']].rename({'close_equity':'NAV','fund_$':'Contributed_Capital','daily_return_$_y':'PnL'},axis=1)
-
+    
+    result = result_table[['Month_End','close_equity','fund_$','Capital_Flow','Cash','daily_return_$_y','Monthly_Performance']].rename({'close_equity':'NAV','fund_$':'Contributed_Capital','daily_return_$_y':'PnL'},axis=1)
+    result.to_csv('monthly_return.csv')
+    
+    return result
