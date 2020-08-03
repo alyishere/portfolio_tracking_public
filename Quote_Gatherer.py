@@ -5,7 +5,7 @@ from datetime import datetime
 from datetime import timezone
 
 def gather_current_quote(orders):
-    token = open('tradier_token.txt','r').read()
+
     ticker_list = orders.groupby('Ticker').min()['Date'].index.tolist()
     ticker_str = ""
     for i in ticker_list:
@@ -13,7 +13,7 @@ def gather_current_quote(orders):
         if len(i) > 10:
             ticker_str = ticker_str + "," + i[:-15] 
     ticker_str = ticker_str[1:]
-
+    token = open('tradier_token.txt','r').read()
     response = requests.get('https://sandbox.tradier.com/v1/markets/quotes',
         params={'symbols': ticker_str, 'greeks': 'false'},
         headers={'Authorization': 'Bearer '+token, 'Accept': 'application/json'}
