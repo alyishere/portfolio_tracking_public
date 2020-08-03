@@ -158,3 +158,42 @@ def getRBHDAccountInfo():
 def getRBHDCash():
     info = getRBHDAccountInfo()
     return float(info['results'][0]['portfolio_cash'])
+
+def getPortfolioPositions():
+        token = rbhd_login()
+        account_number = getRBHDAccountInfo()['results'][0]['account_number']
+        header = {"Accept": "application/json",
+                "Authorization": token
+        }
+        url = "https://api.robinhood.com/portfolios/historicals/" + account_number + "/?account=" + account_number + "&bounds=regular&interval=&span=all"
+        r = requests.get(url, headers=header)
+        portfolioPositionsDF = pd.DataFrame(json.loads(r.text)['equity_historicals'])
+        portfolioPositionsDF['close_equity'] = portfolioPositionsDF['close_equity'].astype('float')
+        portfolioPositionsDF['adjusted_close_equity'] = portfolioPositionsDF['adjusted_close_equity'].astype('float')
+        portfolioPositionsDF['previous_adjusted_close_equity'] = portfolioPositionsDF['adjusted_close_equity'].shift(1)
+        portfolioPositionsDF['daily_return_$'] = portfolioPositionsDF['adjusted_close_equity']-portfolioPositionsDF['previous_adjusted_close_equity']
+        portfolioPositionsDF['previous_close_equity'] = portfolioPositionsDF['close_equity']-portfolioPositionsDF['daily_return_$']
+        portfolioPositionsDF['daily_return_%'] = portfolioPositionsDF['daily_return_$']/portfolioPositionsDF['previous_close_equity']
+        portfolioPositionsDF['total_return_$'] = portfolioPositionsDF['daily_return_$'].cumsum()
+        portfolioPositionsDF['fund_$'] =  portfolioPositionsDF['close_equity'] - portfolioPositionsDF['total_return_$'] 
+        portfolioPositionsDF.to_csv('historical_position.csv')
+        return portfolioPositionsDF
+
+def monthly_return_RBHD():
+    positions = getPortfolioPositions()
+    from pandas.tseries.offsets import MonthEnd
+    positions['Date'] = (pd.to_datetime(positions['begins_at'], format="%Y%m%")).dt.date
+    positions['Month_End'] = positions['Date'].apply(lambda date: (date+MonthEnd(0)).strftime("%Y-%m-%d"))
+    positions['daily_return_%+1'] = positions['daily_return_%'] +1
+    positions['MTD_perf'] = (positions.groupby('Month_End')['daily_return_%+1'].cumprod()-1)*100
+    ## MTD_perf is calculated by compounding daily. This is not usually used due to large capital inflow/outflow
+    result_table = pd.merge(positions.groupby('Month_End').tail(1),positions.groupby('Month_End')['daily_return_$'].sum(),left_on="Month_End",right_on="Month_End")[['Month_End','close_equity','fund_$','close_market_value','daily_return_$_y','MTD_perf']]
+    result_table['close_market_value'] = result_table['close_market_value'].astype('float') 
+    result_table['Cash'] = result_table['close_equity'] - result_table['close_market_value']
+    result_table['Previous_Commitment'] = result_table['fund_$'].shift(1)
+    result_table.fillna(0, inplace=True)
+    result_table['Capital_Flow'] = result_table['fund_$'] - result_table['Previous_Commitment']
+    result_table['Monthly_Performance'] = 100*result_table['daily_return_$_y']/(result_table['close_equity']-result_table['daily_return_$_y'])
+
+    return result_table[['Month_End','close_equity','fund_$','Capital_Flow','Cash','daily_return_$_y','Monthly_Performance']].rename({'close_equity':'NAV','fund_$':'Contributed_Capital','daily_return_$_y':'PnL'},axis=1)
+
