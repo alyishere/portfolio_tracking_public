@@ -102,20 +102,12 @@ def calculate_gain_loss(ticker):
     return [share,cumulative_cost,realized_gain_loss,unrealized_gain_loss,total_gain_loss]
 
 def get_exp_price_for_option(Ticker):
-    ## this is used in option expiration calculation. It used an API to get underlying closing price on exp day
-    ## this is redundant since all data has already been pulled in all_quote and price_table
-    ## I use this since this is a legacy code from an older version and I can save time by using this
-    ## should update this ASAP once I get the chance since gain_loss_calculation should work without internet  
-    import requests
-    token = open('tradier_token.txt','r').read()
+    import pandas as pd
     underlying = Ticker[:-15]
     expiration = '20'+ Ticker[-15:-13] +'-'+ Ticker[-13:-11] +'-'+ Ticker[-11:-9]
-    response = requests.get('https://sandbox.tradier.com/v1/markets/history',
-        params={'symbol': underlying, 'interval': 'daily', 'start': expiration, 'end': expiration},
-        headers={'Authorization': 'Bearer ' + token, 'Accept': 'application/json'}
-    )
-    close = response.json()['history']['day']['close']
-    return close
+    df = pd.read_csv('price_table_cache.csv')
+    result = float(df.query('ticker==@underlying and date==@expiration')['close'])
+    return result
 
 for i in portfolio_view1.index:
     current_ticker = i
@@ -142,5 +134,6 @@ portfolio_view1 = portfolio_view1.append(pd.Series({
 portfolio_view1['Weight'] = 100*round(portfolio_view1['Market Equity'],2)/round(portfolio_view1['Market Equity'].sum(),2)
 portfolio_view1 = portfolio_view1.sort_values('Market Equity',ascending = False).reset_index().drop('index',axis =1)
 print(portfolio_view1)
+portfolio_view1.to_csv('portfolio.csv')
 print("Called Capital  \t" + str(portfolio_view1['Market Equity'].sum()-portfolio_view1['Total Gain/Loss'].sum()))
 print(portfolio_view1[['Realized Gain/Loss','Unrealized Gain/Loss','Total Gain/Loss','Market Equity']].sum())
